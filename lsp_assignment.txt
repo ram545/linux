@@ -1,0 +1,86 @@
+1.Implement a program to copy source file into destination file. If the destination file exists, it should not overwrite. The program optionally takes a flag –f, which implies overwrite if destination file exists.
+
+	- Usage of the application is as shown 
+		$ copy [ -f ]   source-file   dest-file
+
+2. Write a program which performs the following: -  opens a file for reading -  duplicates the file descriptor to descriptor 0. Subsequently the program reads from the standard input and writes to the standard output. What is the observation made?
+
+3. Consider the following code
+             fd1 = open("abc", O_RDONLY);
+	     fd2 = dup(fd1);    
+	     read(fd1, buf, 100);       | --> R1  
+	     read(fd2, buf, 10);        | --> R2  
+	     read(fd1, buf, 10);        | --> R3 
+	     read(fd2, buf, 100);       | --> R4 
+
+what is the offset from where read is done for the statements R3 and R4? 
+
+4. Write an application named mycat which provides functionality of cat. 
+          $ ./mycat - should read from stdin and write to stdout
+          $ ./mycat    abc            
+   Should read file abc and write to stdout. Implementation should use filecopy() function as per the description given below.                int  filecopy(int infd, int outfd, int bufsize);         
+  		- Copies contents of file given by descriptor infd into the file represented by descriptor outfd.
+  		- Internally uses dynamically allocated buffer of size bufsize.
+  		- Should free the buffer before returning from the function
+  		- Should return 0 on successful copy; otherwise returns -1
+
+5. Write a program which forks a process and the parent waits for the child to terminate and prints the exit status, considering the following cases
+	- Child terminates without a call to exit()
+	- Child terminates calling exit(n)
+	- Child terminates calling return(n)
+	hint: Try with values  n = 0,  n > 0 and n < 0 for argument n
+	
+6. Write an application that creates N child processes each sleeping for random amount of time. Use waitpid(), to see that the parent process waits for each of the child processes to terminate and prints the pid of the child process and its exit status
+
+7. On the executables of the programs that you have already created run the following commands:
+	a. file
+	b. size
+	c. nm
+8. Write a program with local,global and static variables, and with dynamic memory allocation (malloc) and analyse the memory maps in proc
+
+9.Define a signal handler that catches SIGINT, SIGTERM and SIGQUIT, prints the signal it has received.Test the program that it functions as desired.
+
+10. Write a program which meets the following requirements.
+	Parent  process registers a signal handler for SIGINT, which prints process ID and the signal which the handler received.
+	Parent process creates two child processes both run in infinite loop.
+	Parent process sends SIGINT to both child processes
+	Parent process sends SIGINT to itself
+	Run the program and observe the behaviour.
+	Note: Use POSIX sigaction to register signal handler.
+
+11. Write a program using pipe() that mimics the behaviour of shell executing command pipeline such as $ cat /usr/include/sysexits.h |less  
+
+12. Test whether it is possible for one process write into a FIFO file and two processes read from the FIFO file simultaneously. Do both processes read the same content?
+
+13. Test whether it is possible for multiple processes to write into a FIFO file simultaneously, and one process reads from the file.
+
+14. Implement resolver application in the following way :-
+    The application takes command line argument which indicates the order in which messages should be processed.
+
+		argument			meaning
+
+                  ANY				retrieve messages in FIFO order
+
+	      specific type	 		retrieve exact message type
+              (exact name)
+
+	     -specific type   			retrieve the first message which is same 
+	      (note the minus			or more critical than the specified message
+             sign)
+
+Test the Resolver application for the above command line arguments.
+
+15. Implement a TCP client-server application wherein client sends contents of a file on its side to the server and server saves the file on the machine where it runs. Filename for the client is given as command line argument. Filename can be utmost  31  characters. The first 32 bytes that client sends is interpreted by the server as NULL terminated filename.
+
+16.Use shared memory to implement application with the following characteristics:
+Writer process creates shared memory and copies contents of a text file specified on the command line. Reader process reads the shared memory, and saves the contents into a file specified on the command line. what are the ways in which reader process is let to know the number of bytes to be read from the shared memory. ]. Shared memory should be released once the purpose is over by both processes.
+
+
+
+
+
+
+
+
+
+

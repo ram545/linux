@@ -1,0 +1,509 @@
+Linux System Programming - 30th,31st,1st of Feb,4th-8th of Feb, 10 am - 1 pm 
+Recordings, programs, notes through a Microsoft Teams group
+
+- Min attendance - 80% of all sessions + an assignment & an assesment
+
+-- Machine details
+
+Linux server's IP :10.142.26.7
+User id: cdc1 to cdc20
+password: Wipro@123
+
+https://bellard.org/jslinux/vm.html?url=https://bellard.org/jslinux/buildroot-x86.cfg
+
+
+Topics to be covered
+
+- Quick introduction on Linux
+- System calls
+	- files
+	- process
+- Signals
+- IPC (Pipes,message queues)
+- Shared memory and Semaphores
+- Network programming
+- Multithreading
+
+- Operating system - a software that controls the hardware and provides an environment for applications to run
+	- Linux evolved from a terminal emulator to a full-fledged OS
+	- used in a wider array of devices and architectures (ARM,SPARC, PowerPC, Alpha...)
+
+Linux system - OS + C library, tool-chain and shell, login process
+Operating system - kernel + device drivers, boot loaders, basic file and system utilities
+Kernel - core of the OS and it provides all the basic services.
+		- process subsystem, memory subsystem, interrupts and other system services
+
+- kernel manages memory and scheduling
+
+RAM - non sequential access to data at very high speeds; it holds programs and data; kernel resides in memory; Pheriperal I/O flow through RAM
+
+Kernel space - is where the kernel resides and runs
+user space - set of memory locations in which user processes reside and run
+
+CPU operates on memory - reads instructions and fetches data from RAM, performs computations and pushes back the results
+
+printf() - formats the string (can be done entirely in user mode) and writes it to the standard op device(require kernel action) - system call write() is invoked to get the kernel action done
+open() - open() system call is invoked
+strcpy() - can be done entirely in user mode
+
+** System calls
+	- are interfaces for applications to interact with the OS
+	- the user process requires a kernel action
+		- raise an interrupt, e.g. in i386 an interrupt with value 0x80 is raised
+	- the interrupt puts the CPU in kernel mode
+	- the kernel grants the system call based on privileges
+	- the kernel executes the system call
+	- the cpu is pushed back to user mode
+
+- system programming - writing system software; directly talks to kernel and core system libraries; focus is on system calls and other low level functions
+
+** Linux file systems
+	- methods and data structures used to keep track of the files on a disk
+		- organisation of data and metadata on a storage device
+	- when an application needs access to files, it invokes the file system kernel service to get access
+
+# system call open()
+
+	- open(pathname,flags,mode)
+		- maps the file specified by the pathname to the file descriptor it returns
+		- if successful it returns the lowest available file descriptor, else -1
+	- flags 
+		- can be used to specify the access mode
+			- O_RDONLY - read only
+			- O_WRONLY - write only
+			- O_RDWR - read/write mode
+		- in addition to acces mode the following modifiers can be used
+			- O_CREAT - if the file doesnt exist it is created
+			- O_ECXL - used in conjunction with O_CREAT, if the file exists the open call fails
+			- O_TRUNC - if the regular file exists it truncates the content
+	- mode is used to specify permissions
+		- read(r),write(w) and execute(x)
+		- the permissions can be specified using macros or using numbers in octal format
+
+		- User(owner) - S_IRUSR,S_IWUSR,S_IXUSR,S_IRWXU
+		- Group - S_IRGRP,S_IWGRP,S_IXGRP,S_IRWXG
+		- others - S_IROTH,S_IWOTH,S_IXOTH,S_IRWXO
+
+Exercise - please try it out at your end
+
+fd = open("sample.dat", O_RDONLY); if the file exists, opens the file in read mode, it returns a file descriptor, else -1
+fd = open("sample.dat", O_WRONLY); if the file exists, opens the file in write mode, it returns a file descriptor, else -1
+fd = open("sample.dat", O_WRONLY | O_EXCL);if the file exists opens in write mode else -1
+fd = open("sample.dat", O_WRONLY | O_CREAT|O_EXCL, 0600); if the file doesnt exists create a file, else -1
+fd = open("sample.dat", O_TRUNC | O_WRONLY | O_CREAT,0600); if the file doesnt exists create a file, else truncate the contents of the file
+					
+# close( int fd);
+	- closes the file descriptor
+	- success returns -0, else -1 
+					
+# read()
+	# include <unistd.h>
+		read(int fd,void *buf, size_t len);
+	
+	- read <len> bytes from the file reffered by <fd> into memory pointed by <buf>
+		- return values
+			- if successful it returns the no# of bytes read
+				- 0 - EOF
+				- returns a value between 0 - len
+					- the read operation interrupted by signal
+			- else -1
+	- possible errors
+		- EINTR - indicates a signal before read could be completed
+		- EAGAIN - read is not possible now
+		- can refer <errno> variable defined in error.h to know the error
+	- file position is advanced by the no# of bytes read
+
+# write()
+
+	# include <unistd.h>
+		write(int fd,const void *buf, size_t count);
+	- write <count> bytes from <buf> into the file pointed by <fd>
+		- return values
+			- if successful returns the no# of bytes written
+			- else -1
+	
+	
+** Duplication of file descriptors
+	# dup() and dup2()
+		- duplicate the file descriptors
+		- the major use of duplicating file descriptors is to implement redirection
+	- File status flags
+		- access mode flags - O_RDONLY,O_WRONLY
+		- operating mode O_APPEND	
+	- File descriptor flag - this flag is unique for duplicates 
+		- FD_CLOEXEC - upon executing a new process the file will be automatically closed
+
+# lseek()
+
+	#include <unistd.h> 
+		- off_t  lseek(int fd, off_t offset, int whence);
+
+	offset - positive or negative
+	whence - SEEK_SET - to the start of the file
+		 SEEK_CUR - is with respect to the current position
+		 SEEK_END - offset is with reference of the file
+
+** Process
+
+	- an object code in execution
+		- memory,storage and computing resource
+	- process is identified with a process ID
+		- init (PID 1) is the first process the kernel executes after booting up 
+		- max process ID could be capped @ 32768
+		- process IDs are allocated linearly and are reused on wrap
+	- the creation of a new process and loading it with binary is seperated
+		- fork() - create a process
+		- exec family of functions for loading the process with the new binary
+	- a process can be forked and created by another process
+		- the creator is the parent and the created process is the child
+			- pid -process id, ppid -parent process id
+
+# fork()
+
+	# include <sys/types.h>
+		pid_t fork(void)
+	- create a new process which is identical to the invoking process
+	- fork() call returns twice
+		- once to the parent - it returns the pid of the child 
+		- once to the child  - it returns a 0
+
+- compiling a c program
+	- pre-processing (*.i) - removal of comments, expansion of headers and macros
+	- compilation(*.s) - high level instructions are converted to assembly level instructions
+	- assembly(*.o) - assembly instructions are converted into machine level instructions
+	- linking  - linking of function calls with definition 
+
+- Linux process address space
+	- stack segment - local variables, function parameters
+		- calling a function pushes a stack frame on to the stack and the its deleted when the function returns
+	- each thread will have their own stack
+	- Memory mapped segment
+		- files that are directly mapped to memory
+		- dynamically linked libraries
+		- malloc() - when the requested memory is greater than mmap_threshold
+	- heap segment
+		- runtime memory allocation
+		- heap can grow using the brk()
+	- BSS (Block seperated by symbol) segment
+		- static variables and global variables not initialises in the program
+	- data segment
+		- static and global variables initialized in the code 
+	- Text segment
+		- stores all the code
+		- this area is write protected
+-- explore the usage of nm command
+
+#getpid() && getppid()
+
+* Loading a new binary in the child process
+
+# the call used is execl() - replace the current process image with the new one 
+	- execl(path,args...) - it can take variable no# of arguments and hence it is NULL terminated
+
+* Terminating a process
+
+# include <stdlib.h>
+	void exit(int status); - it calls void _exit(int status)
+	- basic shutdown steps and then instructs the kernel to terminate the process
+	- status parameter is used to pass exit status
+		- status - 0 - normal exit
+		- status - non zero value - abnormal exit
+	- every process that terminates, sends a SIGCHLD signal to the parent
+
+* Linux process state
+
+- Process has a lifecycle associated with it, and it goes through different states
+	- Running state - the CPU is currently serving the process (FLAG -R)
+	- Runnable state - the process has all the resources and its in the queue to be scheduled
+	- Waiting state(sleep) - waiting for some resource; the process is removed from the CPU queue
+		- Interruptible - the process can be interrupted by a signal (FLAG -S)
+		- Uninterruptible - the process cannot be interrupted (FLAG -D)
+		- Stopped state - process ends, it sends SIGCHLD signal to the parent
+			- Zombie state/defunct state - between the time a process sends the SIGCHLD signal and the parent process gathers its status (FLAG - Z)
+
+- Waiting on terminated child process
+	- when the child process dies, the kernel maintains a minimal set of information on the process, to allow the parent to gather the status of the child
+	- when the parent gathers the status the child is officially terminated
+
+# wait() && waitpid()
+
+	# include <sys/type.h>
+	# include <sys/wait.h>
+	pid-t wait(int *status);
+	- returns the PID of the terminated child, else -1
+	- this is blocking call 
+		- ECHILD - calling process doesnt have a child
+		- EINTR - a signal was received while waiting
+	status value
+		- 0 if normal termination
+		- 1 and 255 - if its not a normal termination
+
+-257 % 256 - 255
+-256 % 256 -0
+-255 % 256 - 1
+:
+- 3 % 256 - 253
+-2 % 256 - 254
+-1 % 256 - 255
+0 % 256 - 0
+1 % 256 - 1
+2 % 256 - 2
+.
+.
+.
+255 % 256 - 255
+256 % 256 - 0
+257 % 256 - 1 
+
+A number divisible by 256 and should be less than or equal to -1
+
+-256 is less than -1 and is divisible by 256
+-1 is 255 greater than -256
+
+# waitpid()
+
+	# include <sys/type.h>
+	# include <sys/wait.h>
+	pid_t waitpid(pid_t pid,int *status,int option);
+
+	- option - WNOHANG - do not block
+
+	- pid =-1, it behaves like wait
+	- pid >0 - it waits on the process with the specified PID
+	- pid=0, waits on any process belonging to the same group
+	- pid<-1, wait on any process whose group id is the abs(given value)
+		- e.g pid=-700, it can wait on any process in the process group |-700| - 700
+
+** Job
+	- since Linux is a multi-tasking OS, it allows multiple processes to run simultaneously
+		- each process is a job and its assigned a job no
+ 
+- Daemon process
+	- a process that runs in the background waiting to be activated by the occurance of an event; Its not associated with any terminal
+	- interactive processes, batch processes, Daemon process
+
+- to make a process a daemon
+	- run the daemon as the child of the root
+	- it must be disaaociated from terminals
+
+-- Creating a daemon
+	- fork, create a process and let the parent die
+	- umask(0) - give all rights to files created by the daemon
+	- open a file for writing the logs
+	- create a new session (setsid())
+	- the make the root as the current directory
+	- close all standard file descriptors
+	- the logic the daemon has to run
+
+** Proc file system
+	- pseudo filesystem
+	- proc doesnt have an hardware device associated 
+	- kernel provides access to parameters and data structures through the proc filesystem
+	- the content could be generated in the fly
+
+** Signals
+
+- signals are software interrupts 
+	- they provide a mechanism to handle asynchronous events
+	- asynchronous events - events happenning independant of the main program flow
+	- the event's origin could be from outside the system - cntrl+c or from within the 		          program, e.g. divide by zero or from the kernel e.g. alarm
+	- signal handling functions are registered with the kernel and are invoked asynchronously when 	  the signal is delivered
+- signal life cycle
+	- a signal is generated/raised
+	- kernel stores and delivers it
+	- signals are handled
+		- Ignore the signal - no action is taken; e.g. SIGCHLD
+			- SIGKILL and SIGSTOP - cannot be ignored
+		- catch and handle
+			- suspend the execution of the current code 
+			- invoke the handler
+			- on return continue from where it was left
+			- - SIGKILL and SIGSTOP - cannot be caught and handled
+-- Signal identifiers
+	- every signal has a symbolic name starting with SIG
+	e.g. SIGINT - cntrl+c, abort() - SIGABRT
+-- explore # /usr/include/asm-generic/signal.h - for name to signo# mapping
+	- this mapping is implementation dependant
+
+SIGHUP - 1 - sent to the session leader when the terminal disconnects; signal is sent to each of the foreground processes; default action: terminate
+SIGINT - 2 - sent to processes in the fg process group when the user presses cntrl+c; default action is to terminate; this signal can be caught and handled
+SIGQUIT - 3 sent to all processses in the fg process group when the terminal is quit; default-terminate and core dump
+SIGABRT - 6-abort(), the signal is sent to the process that invokes it; default - terminate +core dump
+SIGKILL - 9 - sent by the kill() system call; unconditionally kills a process
+SIGCHLD - sent by the child when it terminates, can be caught and handled
+
+# kill()
+
+	# include <signal.h>
+	int kill(pid_t pid,int signo);
+	
+	- pid=0, the signal <signo> is sent to every process in the process group of the invoking 	  process
+	- pid =-1, sends signal <signo> to every process it has permission to send
+
+	- return - 0 on success and -1 on failure
+	- error values
+		- EINVAL - Invalid signal
+		- EPERM - invoking process lacks permission
+		- ESCRH - process group doesnt exist or/zombie process
+# include <signal.h>
+int raise(int signo)
+	- sends signal <signo> to itself
+		- this equivalent to kill(getpid(),int signo)
+
+-- signal management
+	- the interface for signal management is the signal() function
+
+	# include <signal.h>
+
+	signal(int signo, sighandler_t handler);
+	
+	- if this call is successful the current action on <signo> is removed and the handler is 	registered in it place
+	- handler - void handler(int signo);
+			- can handle multiple signals
+	- when the signal is raised, the kernel suspends the execution of the program and invokes the 	  handler
+		- SIG_DFL - restore the default action
+		- SIG_IGN - ignore by default
+
+-- signal inheritance
+
+	- on fork(), the child inherits signal actions from its parent
+	- child copies the registered action for each signal	
+	   
+Signal behaviour	fork		exec
+
+Ignored 		Inherited	Inherited
+Default			Inherited	Inherited
+Handled			Inherited	Not inherited
+
+** Interprocess communications 
+	- unnamed pipes and named pipes(fifo)
+	- Message queues and shared memory
+	- sockets - TCP, UDP based sockets
+
+- processes do specilist jobs
+- processes will have to colloborate with each other to accomplish certain tasks
+- in order to work together, processes will have exchange data
+- Inter Process Communication mechanisms provides the ways and means for processes to communicate
+- Unix version 3 was written in C language
+- first commercial version of UNIX - System III
+- System V was released integrating features developed by UCB and others
+	- TCP/IP, csh shell, vi text editor
+	- message queues, shared memory and semaphores (System V IPCs)
+
+** Unnamed pipes
+
+	- used for IPC between related processes
+	   #include <unistd.h> 
+		int  pipe(int  pipefd[ ]);
+		- it returns a pair of file descriptors into the array passed as argument
+		- these fds are used for communication
+** Named pipes
+
+** Message queues
+	- an internal linked list within the kernel address space
+	- message boundaries and structure are defined
+	- messages can be retrived based on type
+	- each message queue is identified by a message queue id
+
+- IPC identifiers
+	- each system V IPC object has an unique identifier, its unique within the object type
+	- kernel uses the id to identify the IPC object
+	- to obtain a unique object id a key is used
+	- ftok() - function is used to generate the keys
+
+	key_t ftok (const char *filename, int id);
+		filename - any existing filename
+				- inode no#, minor device no#
+		id - no# 
+
+# msgget() -used to create or connect to a message queue
+# msgsnd() - write into a message queue
+# msgrcv() - read from the message queue
+# msgctl() - control operations
+	- msgctl(int msqid, int cmd,struct msqid_ds *buf);
+
+	- cmd
+		- IPC_STAT - returns the status information contained in the associated data structure
+		- IPC_RMID - remove message queue
+
+** Shared memory
+	- way of passing data between processess
+	- based on a request, the kernel creates a shared memory segment that can be mapped into the process address space
+	- the segment can be mapped by other processes
+	- kernel maintains a special data structure for each segment. shmid_ds defined in linux/shm.h
+
+# shared memory system calls
+
+int  shmget(key_t key, size_t size, int shmflg);
+	- key unique key, can be generated using ftok()
+	- size - size of the shared memory segment
+	- shmflg - IPC_CREAT|IPC_EXCL| permissions
+	- return value is the id of the shared memory segment
+void *shmat(int shmid,void *shmaddr,int shmflg);
+	shmid - id returned by shmget
+	shmaddr - the address in the virtual address space to map the segment. 0-the system decides
+	-returns a pointer to the shared segment
+int shmdt(void *shmaddr); - detach the shared memory segment from the process address space of the calling process
+int  shmctl(int shmid, int cmd, struct shmid_ds *buffer); - control operations on the share memory segment
+		
+** Sockets
+	- Unicasting - one to one
+	- Multicasting  - one to many
+	- brodcasting - one to all
+
+- socket - virtual end point for network communication
+
+# system calls
+
+Socket() ; -create an endpoint for communication and it returns a file descriptor
+	
+	# include <sys/socket.h>
+	# include <netinet/in.h>
+	
+	int socket (int domain, int type, int protocol);
+		domain - protocol family
+			- AF_INET - IPV4
+			- AF_INET6 - IPV6
+			- AF_IPX - Novell's
+			- AF_APPLETALK - Appletalk
+		type - SOCK_STREAM (TCP) - provides reliable service
+		       SOCK_DGRAM - (UDP) - connectionless service
+		- protocol - protocol to be used; 0
+	if the call is successful, it returns a socket descriptor(file descriptor)
+
+Bind() ; -  to bind an address with the socket
+
+	# include <sys/socket.h>
+	# include <netinet/in.h>
+	# include <types.h>
+
+	int bind(int sockfd, struct sockaddr *pAddr,int addrlen);
+		- binds the address referred by pAddr to the socket <sockfd>
+		- returns 0 on success and -1 on failure
+- length of an integer - 4 bytes
+	- dec 5000 - 00-00-13-88
+			
+Listen() ; - marks a socket referred by socfd as a passive socket used to accept incoming connections
+
+	# include <sys/socket.h>
+	int listen (int sockfd, int backlog);
+		-socfd - the socket decriptor that going to accept the connection		
+		-backlog - max length of pending connections
+		-returns 0 on success else -1
+
+
+Accept(); - call is used to accept a connection request from a client
+
+	# include <sys/socket.h>
+	# include <sys/type.h>
+	int accept (int sockfd, void *addr, int *addrlen);
+	
+	- it returns a non-negative integer, descriptor for the accepted socket
+
+/Connect();
+Write()/read() ;
+Close() ;
+
+
+
+

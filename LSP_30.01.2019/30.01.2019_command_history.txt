@@ -1,0 +1,77 @@
+924  cd /usr/include/
+  925  ls
+  926  exit
+  927  ps -ef
+  928  mount
+  929  clear
+  930  ls
+  931  ls -i
+  932  cd LSP_14.01.2019/
+  933  clear
+  934  ls -lisan
+  935  exit
+  936  ps -ef
+  937  mount 
+  938  cd /pro
+  939  cd /proc
+  940  ls
+  941  cd 3077
+  942  ls
+  943  cd fd
+  944  ls
+  945  ls -l
+  946  exit
+  947  cd LSP_30.01.2019/
+  948  clear
+  949  ulimit -aH
+  950  clear
+  951  vi getch.c
+  952  gcc getch.c -o getch
+  953  ./getch 
+  954  ls -l
+  955  clear
+  956  vi text.txt
+  957  vi open.c
+  958  gcc open.c -o open
+  959  ./open
+  960  vi open.c
+  961  gcc open.c -o open
+  962  ./open
+  963  vi open.c
+  964  gcc open.c -o open
+  965  ./open
+  966  vi open.c
+  967  ./open
+  968  vi open.c
+  969  gcc open.c -o open
+  970  ./open
+  971  ls -l
+  972  cat /etc/bashrc | grep umask
+  973  cat /etc/bashrc 
+  974  exit
+  975  ps -ef
+  976  cd /proc/3360/fd
+  977  ls
+  978  ps -ef
+  979  cd /proc/3402/fd
+  980  ls
+  981  exit
+  982  cd LSP_30.01.2019/
+  983  vi close.c
+  984  exit
+  985  ps -ef
+  986  cd /proc/3208/fd
+  987  ls
+  988  cd ~/Desktop/LSP_30.01.2019/
+  989  vi open.c
+  990  ls -1
+  991  ls -i
+  992  vi open.c
+  993  cp open.c close.c
+  994  vi close.c 
+  995  gcc close.c -o close
+  996  ./close 
+  997  gcc close.c -o close
+  998  ./close 
+  999  exit
+

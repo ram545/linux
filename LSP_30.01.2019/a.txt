@@ -1,0 +1,12 @@
+30.01.2019_command_history.txt
+a.txt
+close
+close.c
+getch
+getch.c
+open
+open.c
+readwrite
+readwrite.c
+test1.txt
+text.txt
