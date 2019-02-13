@@ -49,4 +49,4 @@ main()
 }
 
 
-// two processes can't read the same pipe simultaneously , they can only do it one after the other
+// two processes can't write the same pipe simultaneously , they can only do it one after the other
